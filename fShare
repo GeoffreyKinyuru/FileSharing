@@ -1,0 +1,279 @@
+
+package fshare;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class FShareLocal extends JFrame{
+    private static JMenuBar fshareNav;
+    private static JMenu file,settings;
+    private static JMenuItem open,exit,preferences;
+    private static ImageIcon fshareLogo;
+    private static JLabel hostProfile, hostNameLabel, hostIp,hostName
+                          ,localAddress,localMachineAddress;
+    private static JPanel hostMachinePanel,remoteConfigurattionPanel;
+    
+    private static DatagramSocket socket;
+    private static InetAddress ip;
+    private Thread sendingThread;
+    String adrs="129.0.01";
+    int prt;
+    
+    JLabel animationPics;
+     Timer tm;
+    int x = 0;
+    String [] imageList =
+    {
+        "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
+            + "/windows2.png",        
+        "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
+            + "/window1.png",
+        "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
+            + "/user.png",
+        "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
+            + "/network.png"
+    };
+    
+    public FShareLocal() throws UnknownHostException{
+        super("fshare");
+        fshareWindow();    
+        remoteConfiguration();
+    
+        boolean connect = openConnection(adrs, prt);
+        if(!connect){
+            JOptionPane.showMessageDialog(null, "Connection Failed!!!");
+            
+        }
+      
+        fshareNav = new JMenuBar();
+        fshareNav.setBackground(new Color(255,204,255));
+    
+        file = new JMenu();
+        file.setText("File \t");
+        file.setCursor(Cursor.getDefaultCursor());
+        file.setFont(new Font("segoe UI",1,14));
+        file.setForeground(new Color(0,0,204));
+        fshareNav.add(file);
+        
+        open = new JMenuItem("Open...");
+        file.add(open);
+       
+        exit = new JMenuItem("Exit");
+        file.add(exit); 
+        
+        exit.addActionListener((ActionEvent evt) -> {
+            int exitConstant = JOptionPane
+                    .showConfirmDialog(this,"Exit this software","fShare",
+                            JOptionPane.YES_NO_OPTION);
+            if(exitConstant == JOptionPane.YES_OPTION){
+                System.exit(0);
+            }
+            return;
+        });
+        
+        settings = new JMenu("settings");
+        settings.setCursor(Cursor.getDefaultCursor());
+        settings.setForeground(new Color(0,0,204));
+        settings.setFont(new Font("segoe UI",1,14));
+        fshareNav.add(settings);
+        
+        preferences = new JMenuItem("Preferences");
+        settings.add(preferences);
+       
+        setJMenuBar(fshareNav);
+        
+        animationPics = new JLabel();
+        animationPics.setBounds(5,5,200,200);
+        animationPics.setBackground(Color.WHITE);
+        
+        
+        setImagesSizes(3);
+        tm = new Timer(3000,(ActionEvent e)->{ 
+            setImagesSizes(x);
+            x +=1;
+            if(x >=imageList.length){
+                x = 0;
+            }
+            
+        });
+        add(animationPics);
+        tm.start();
+        
+   /* fshareLogo = new ImageIcon(getClass().getResource("user.png"));
+    
+    hostProfile = new JLabel(fshareLogo);
+    hostProfile.setBounds(5,5,200,200);
+    add(hostProfile);*/
+    
+    hostMachinePanel = new JPanel();
+    hostMachinePanel.setLayout(null);
+     hostMachinePanel.setBounds(210,5,220,200);
+     hostMachinePanel.setBackground(new Color(255,255,102));
+     add(hostMachinePanel);
+    
+    hostNameLabel = new JLabel();
+    hostNameLabel.setText("Running on:");
+    hostNameLabel.setFont(new java.awt.Font("Segoe UI", 1, 14));
+    hostNameLabel.setForeground(new Color(0,51,51));
+     hostNameLabel.setBounds(10,10,200,20);
+     hostMachinePanel.add(hostNameLabel);
+        
+     hostName = new JLabel();
+    hostName.setText(System.getProperty("user.name")+"'s PC");
+    hostName.setFont(new java.awt.Font("Segoe UI", 1, 14));
+    hostName.setForeground(new Color(0,51,51));
+     hostName.setBounds(10,60,200,20);
+    hostMachinePanel.add(hostName);   
+      
+     localAddress = new JLabel();
+     localAddress.setBounds(10,110,210,20);
+     localAddress.setForeground(new Color(0,51,51));
+     localAddress.setText("(at) "+localHostAddress().toString());
+     hostMachinePanel.add(localAddress);
+     
+     localMachineAddress = new JLabel();
+     localMachineAddress.setBounds(210,160,100,20);
+     localMachineAddress.setText("");
+     //add(localMachineAddress);
+     
+     JLabel separator = new JLabel();
+     separator.setText("-----------------------------------------------------");
+     separator.setForeground(new Color(0,0,255));
+     separator.setBounds(100,210,250,10);
+     add(separator);
+     
+     JPanel footerPanel = new JPanel();
+     footerPanel.setBounds(0,625,getWidth(),25);
+     footerPanel.setBackground(new Color(255,204,205));
+     add(footerPanel);
+     
+        addWindowListener(new java.awt.event.WindowAdapter(){
+        @Override
+        public void windowClosing(WindowEvent evt){
+        formWindowClosing(evt);
+    }
+    });
+    
+    }
+    
+    public void setImagesSizes(int i){
+        ImageIcon icon = new ImageIcon(imageList[i]);
+        Image img = icon.getImage();
+        Image newImg = img.getScaledInstance(animationPics.getWidth(),
+                        animationPics.getHeight(),Image.SCALE_SMOOTH);
+        ImageIcon newImic = new ImageIcon(newImg);
+        animationPics.setIcon(newImic);
+    }
+    
+    private void formWindowClosing(WindowEvent evt){
+        
+        int closeConstant = JOptionPane
+                .showConfirmDialog(this,"Close this software","fShare",
+                                            JOptionPane.YES_NO_OPTION);
+        if(closeConstant == JOptionPane.YES_OPTION){
+            System.exit(0);
+        }
+        return;
+    }
+    public String myIpAddress() throws UnknownHostException{
+        
+    InetAddress thisIp =InetAddress.getLocalHost();
+    return (thisIp.getHostAddress());
+        
+    }
+    public InetAddress localHostAddress()throws UnknownHostException{
+        return (InetAddress.getLocalHost());
+    }
+    
+    private void fshareWindow(){
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+        }
+        setSize(440,700);
+        setLayout(null);
+        getContentPane().setBackground(new Color(153, 255, 153) );
+        setVisible(true);
+        setLocationRelativeTo(null);
+        setResizable(false);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setIconImage(Toolkit.getDefaultToolkit()
+                .getImage(getClass()
+                .getResource("ftp_icon.png"))
+                );
+        
+    }
+
+    //open connection
+    private boolean openConnection(String address, int port){
+        try {
+            
+            ip = InetAddress.getByName(address);
+            socket = new DatagramSocket();
+        } catch (UnknownHostException ue) {
+            ue.printStackTrace();
+        }catch(SocketException se){
+            se.printStackTrace();
+        }
+        return true;
+    }
+    private String receive(){
+        byte[]data = new byte[Integer.MAX_VALUE];
+        DatagramPacket packet  = new DatagramPacket(data, data.length);
+        try {
+            socket.receive(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String messageReceived = new String(packet.getData());
+        return messageReceived;
+    }
+    
+    private void send(final byte[]data){
+        sendingThread = new Thread(){
+            @Override
+            public void run(){
+           DatagramPacket  packet = new DatagramPacket(data, data.length,ip,prt);
+                try {
+                    socket.send(packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        sendingThread.start();
+    }
+    private void remoteConfiguration(){
+        remoteConfigurattionPanel = new JPanel();
+        remoteConfigurattionPanel.setLayout(null);
+        remoteConfigurattionPanel
+                   .setBounds(5,230,getWidth()-15,getHeight()-310);
+        remoteConfigurattionPanel.setBackground(new Color(255,255,255));
+        remoteConfigurattionPanel.setBorder(javax.swing.BorderFactory
+                   .createLineBorder(new Color(32,32,32), 1, false));
+        add(remoteConfigurattionPanel);
+    }
+    public static void main(String[] args) {
+        UIManager.put("OptionPane.background", Color.ORANGE);
+        
+        java.awt.EventQueue.invokeLater(() -> {
+            try {
+                FShareLocal fshare = new FShareLocal();
+            } catch (UnknownHostException ex) {
+                Logger.getLogger(FShareLocal.class.getName())
+                                .log(Level.SEVERE, null, ex);
+            }
+        });
+    }
+    
+}
