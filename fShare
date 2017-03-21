@@ -1,24 +1,20 @@
 
 package fshare;
+import fshare.files_scheduler.scheduler;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.table.DefaultTableModel;
 
 public class FShareLocal extends JFrame{
     private static JMenuBar fshareNav;
     private static JMenu file,settings;
     private static JMenuItem open,exit,preferences;
-    private static ImageIcon fshareLogo;
+    private static ImageIcon fshareLogo,folder,set;
     private static JLabel hostProfile, hostNameLabel, hostIp,hostName
                           ,localAddress,localMachineAddress;
     private static JPanel hostMachinePanel,remoteConfigurattionPanel;
@@ -35,20 +31,23 @@ public class FShareLocal extends JFrame{
     String [] imageList =
     {
         "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
-            + "/windows2.png",        
+            + "/images/windows2.png",        
         "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
-            + "/window1.png",
+            + "/images/window1.png",
         "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
-            + "/user.png",
+            + "/images/user.png",
         "C:\\Users\\Engineer\\Documents\\NetBeansProjects\\Fshare\\src\\fshare"
-            + "/network.png"
+            + "/images/network.png"
     };
     
     public FShareLocal() throws UnknownHostException{
         super("fshare");
         fshareWindow();    
-        remoteConfiguration();
-    
+        remoteConfiguration();    
+        connectionsStatusPanel();
+        filesSetupNavs();
+        filesTable();
+        
         boolean connect = openConnection(adrs, prt);
         if(!connect){
             JOptionPane.showMessageDialog(null, "Connection Failed!!!");
@@ -65,7 +64,7 @@ public class FShareLocal extends JFrame{
         file.setForeground(new Color(0,0,204));
         fshareNav.add(file);
         
-        open = new JMenuItem("Open...");
+        open = new JMenuItem("Open ...");
         file.add(open);
        
         exit = new JMenuItem("Exit");
@@ -87,7 +86,7 @@ public class FShareLocal extends JFrame{
         settings.setFont(new Font("segoe UI",1,14));
         fshareNav.add(settings);
         
-        preferences = new JMenuItem("Preferences");
+        preferences = new JMenuItem("Preferences ...");
         settings.add(preferences);
        
         setJMenuBar(fshareNav);
@@ -118,7 +117,7 @@ public class FShareLocal extends JFrame{
     hostMachinePanel = new JPanel();
     hostMachinePanel.setLayout(null);
      hostMachinePanel.setBounds(210,5,220,200);
-     hostMachinePanel.setBackground(new Color(255,255,102));
+     hostMachinePanel.setBackground(new Color(204,255,255));
      add(hostMachinePanel);
     
     hostNameLabel = new JLabel();
@@ -152,9 +151,34 @@ public class FShareLocal extends JFrame{
      separator.setBounds(100,210,250,10);
      add(separator);
      
+     folder = new ImageIcon(getClass().getResource("images/document.png"));
+     set = new ImageIcon(getClass().getResource("images/setIcon.png"));
+     
+     JLabel folderIconHolder = new JLabel(folder);
+     folderIconHolder.setBounds(200,620,60,25);
+     add(folderIconHolder);
+     
+     folderIconHolder.addMouseListener(new MouseAdapter(){
+         @Override
+         public void mouseEntered(MouseEvent evt){
+             folderIconHolder.setToolTipText("Recently received documents");
+             }
+     });
+     
+     JLabel settingsIconHolder = new JLabel(set);
+     settingsIconHolder.setBounds(300,620,60,25);
+     add(settingsIconHolder);
+     
+     settingsIconHolder.addMouseListener(new MouseAdapter() {
+         @Override
+         public void mouseEntered(MouseEvent event){
+             settingsIconHolder.setToolTipText("Customise Software");
+         }
+     });
+     
      JPanel footerPanel = new JPanel();
-     footerPanel.setBounds(0,625,getWidth(),25);
-     footerPanel.setBackground(new Color(255,204,205));
+     footerPanel.setBounds(0,615,getWidth(),35);
+     footerPanel.setBackground(new Color(153,204,255));
      add(footerPanel);
      
         addWindowListener(new java.awt.event.WindowAdapter(){
@@ -202,14 +226,14 @@ public class FShareLocal extends JFrame{
         }
         setSize(440,700);
         setLayout(null);
-        getContentPane().setBackground(new Color(153, 255, 153) );
+        getContentPane().setBackground(new Color(102, 255, 255) );
         setVisible(true);
         setLocationRelativeTo(null);
         setResizable(false);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setIconImage(Toolkit.getDefaultToolkit()
                 .getImage(getClass()
-                .getResource("ftp_icon.png"))
+                .getResource("images/ftp_icon.png"))
                 );
         
     }
@@ -225,8 +249,9 @@ public class FShareLocal extends JFrame{
         }catch(SocketException se){
             se.printStackTrace();
         }
-        return true;
+     return true;
     }
+
     private String receive(){
         byte[]data = new byte[Integer.MAX_VALUE];
         DatagramPacket packet  = new DatagramPacket(data, data.length);
@@ -257,11 +282,85 @@ public class FShareLocal extends JFrame{
         remoteConfigurattionPanel = new JPanel();
         remoteConfigurattionPanel.setLayout(null);
         remoteConfigurattionPanel
-                   .setBounds(5,230,getWidth()-15,getHeight()-310);
+                   .setBounds(5,230,getWidth()-15,getHeight()-320);
         remoteConfigurattionPanel.setBackground(new Color(255,255,255));
         remoteConfigurattionPanel.setBorder(javax.swing.BorderFactory
                    .createLineBorder(new Color(32,32,32), 1, false));
         add(remoteConfigurattionPanel);
+        
+        
+    }
+    private void connectionsStatusPanel(){
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(null);
+        statusPanel.setBackground(new Color(32,32,32));
+        statusPanel.setBounds(0,0,getWidth(),40);
+        
+        JLabel statusBar = new JLabel
+        ("Connections established with -----------(at)----------/192.168.0.10");
+        statusBar.setBackground(new Color(255,255,153));
+        statusBar.setForeground(new Color(0,0,255));
+        statusBar.setFont(new Font("Segoe UI",1,12));
+        statusBar.setBounds(10,5,getWidth(),30);
+        statusPanel.add(statusBar);
+        
+        remoteConfigurattionPanel.add(statusPanel);
+    }
+    private void filesSetupNavs(){
+        JPanel fnavs = new JPanel();
+        fnavs.setLayout(null);
+        fnavs.setBounds(360,0,80,240);
+        fnavs.setBackground(new Color(0,255,0));
+        
+        JButton plus,delete;
+        ImageIcon p,d;
+        
+        p = new ImageIcon(getClass().getResource("images/plus.png"));
+        plus = new JButton("add");
+        plus.setBackground(new Color(0,0,204));
+        plus.setForeground(new Color(153,0,0));
+        plus.setBounds(5,45,70,30);
+        
+        plus.addActionListener((ActionEvent evt) -> {
+            java.awt.EventQueue.invokeLater(() -> {
+                new scheduler();
+            });
+        });
+        
+        fnavs.add(plus);
+        
+        d = new ImageIcon(getClass().getResource("images/trash.png"));
+        delete = new JButton("delete");
+        delete.setBackground(new Color(0,0,204));
+        delete.setForeground(new Color(153,0,0));
+        delete.setBounds(5,100,70,30);
+        fnavs.add(delete);       
+        
+        
+        
+        remoteConfigurattionPanel.add(fnavs);
+    }
+    private void filesTable(){
+        JTable ftable = new JTable();
+        ftable.setBackground(new Color(225,225,225));
+        ftable.setLayout(null);
+        ftable.setEnabled(false);
+        ftable.setModel(new DefaultTableModel(
+        new Object [][]{
+            {null,null},
+            {null,null},
+            {null,null}
+            
+        },
+                new String[]{
+                    "Description",""
+                }
+        ));
+        
+        JScrollPane wrapper = new JScrollPane();
+        wrapper.setBounds(0,40,getWidth()-80,200);
+        wrapper.setViewportView(ftable);
+        remoteConfigurattionPanel.add(wrapper);       
     }
     public static void main(String[] args) {
         UIManager.put("OptionPane.background", Color.ORANGE);
